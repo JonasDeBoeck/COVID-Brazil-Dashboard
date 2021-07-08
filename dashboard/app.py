@@ -34,6 +34,8 @@ wdir = os.getcwd()
 wdir = re.sub(r'dashboard/', '', wdir)
 wdir = re.sub(r'\\', '/', wdir)
 
+subregions_metadata = pd.read_csv(f'{wdir}/data/filtered_data/SUBREGION_METADATA.csv')
+
 app.layout = html.Div([
     dcc.Tabs(id='tabs', value='cases', children=[
         dcc.Tab(label='Cases', value='cases'),
@@ -56,10 +58,8 @@ def render_content(tab):
         return html.Div([
             dcc.Dropdown(
                 id='dropdown-region',
-                options=[
-                    {'label': 'São Paulo', 'value': 'SP'},
-                ],
-                value='SP',
+                options=[{'label': subregion, 'value': subregion} for subregion in subregions_metadata['SUBREGION']],
+                value='Araraquara',
                 clearable=False,
                 style={
                     "width": "200px",
@@ -92,10 +92,6 @@ def render_content(tab):
             html.Div([
 
             ], id='deaths-div'),
-
-            html.Div([
-
-            ], id='vaccinations-div'),
         ])
     # elif tab == 'predictions':
     #     return html.Div([
@@ -497,14 +493,13 @@ def render_content(tab):
     Input('dropdown-region', 'value')
 )
 def update_region_general_info(region):
-    df = pd.read_csv(f'{wdir}/data/filtered_data/{region}/CASES_DEATHS_RECOVERED_ACTIVE_VACCINATIONS.csv')
+    df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     active_infections = df['ACTIVE_CASES'].iloc[-1]
     cumulative_cases = df['CUMULATIVE_CASES'].iloc[-1]
     cumulative_recovered = df['CUMULATIVE_RECOVERED'].iloc[-1]
     cumulative_deaths = df['CUMULATIVE_DEATHS'].iloc[-1]
-    partly_vaccinated = df["PARTLY_VACCINATED"].iloc[-1]
-    vaccinated = df["VACCINATED"].iloc[-1]
+
     div = html.Div([
         dbc.Row([
             dbc.Col(
@@ -631,70 +626,6 @@ def update_region_general_info(region):
                     ])
                 ], style={
                     "borderLeft": "5px solid red",
-                }), 
-                width=2
-            ),
-
-            dbc.Col(
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.P(
-                            ['Partly vaccinated'],
-                            style={
-                                "marginBottom": "0"
-                            }
-                        ),
-                        html.I(
-                            className="fas fa-syringe",
-                            style={
-                                "fontSize": "2rem",
-                                "color": "darkviolet"
-                            }
-                        )
-                    ], style={
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "justifyContent": "space-between",
-                        "alignItems": "center"
-                    }),
-                    dbc.CardBody([
-                        html.H5(f'{region}', className='card-title'),
-                        html.P(partly_vaccinated, className='card-text')
-                    ])
-                ], style={
-                    "borderLeft": "5px solid darkviolet",
-                }), 
-                width=2
-            ),
-
-            dbc.Col(
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.P(
-                            ['Vaccinated'],
-                            style={
-                                "marginBottom": "0"
-                            }
-                        ),
-                        html.I(
-                            className="fas fa-syringe",
-                            style={
-                                "fontSize": "2rem",
-                                "color": "deeppink"
-                            }
-                        )
-                    ], style={
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "justifyContent": "space-between",
-                        "alignItems": "center"
-                    }),
-                    dbc.CardBody([
-                        html.H5(f'{region}', className='card-title'),
-                        html.P(vaccinated, className='card-text')
-                    ])
-                ], style={
-                    "borderLeft": "5px solid deeppink",
                 }), 
                 width=2
             ),
@@ -1364,7 +1295,7 @@ def update_region_general_info(region):
     Input('dropdown-region', 'value')
 )
 def update_province_active(region):
-    df = pd.read_csv(f'{wdir}/data/filtered_data/{region}/CASES_DEATHS_RECOVERED_ACTIVE_VACCINATIONS.csv')
+    df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     fig = make_subplots(
         rows=1,
@@ -1396,7 +1327,7 @@ def update_province_active(region):
     Input('dropdown-region', 'value')
 )
 def update_province_cases(region):
-    df = pd.read_csv(f'{wdir}/data/filtered_data/{region}/CASES_DEATHS_RECOVERED_ACTIVE_VACCINATIONS.csv')
+    df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     fig = make_subplots(
         rows=1, 
@@ -1444,7 +1375,7 @@ def update_province_cases(region):
     Input('dropdown-region', 'value')
 )
 def update_state_vaccinations(region):
-    df = pd.read_csv(f'{wdir}/data/filtered_data/{region}/CASES_DEATHS_RECOVERED_ACTIVE_VACCINATIONS.csv')
+    df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     fig = make_subplots(
         rows=1, 
@@ -1492,7 +1423,7 @@ def update_state_vaccinations(region):
     Input('dropdown-region', 'value')
 )
 def update_province_recovered(region):
-    df = pd.read_csv(f'{wdir}/data/filtered_data/{region}/CASES_DEATHS_RECOVERED_ACTIVE_VACCINATIONS.csv')
+    df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
     
     fig = make_subplots(
         rows=1, 
@@ -1540,7 +1471,7 @@ def update_province_recovered(region):
     Input('dropdown-region', 'value')
 )
 def update_province_deaths(region):
-    df = pd.read_csv(f'{wdir}/data/filtered_data/{region}/CASES_DEATHS_RECOVERED_ACTIVE_VACCINATIONS.csv')
+    df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     fig = make_subplots(
         rows=1, 

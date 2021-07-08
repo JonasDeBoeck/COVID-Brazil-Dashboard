@@ -17,5 +17,15 @@ for subregion in metadata["SUBREGION"]:
                                                     "Novos Óbitos": "NEW_DEATHS", "Óbitos": "CUMULATIVE_DEATHS", "Rt": "CUMULATIVE_RECOVERED", "At": "ACTIVE_CASES",
                                                     "Novas Dose1": "NEW_FIRST_DOSES", "Vac 1": "CUMULATIVE_FIRST_DOSES", "Novas Dose2": "NEW_SECOND_DOSES", "Vac 2": "CUMULATIVE_SECOND_DOSES"
     })
+
+    subregion_data["NEW_RECOVERED"] = 0
+
+    for index, row in subregion_data.iterrows():
+        if index >= 1:
+            subregion_data.iloc[index, 12] = subregion_data.iloc[index, 7] - subregion_data.iloc[index - 1, 7]
+        else:
+            subregion_data.iloc[index, 12] = subregion_data.iloc[index, 7]
+
+    subregion_data["DATE"] = pd.to_datetime(subregion_data["DATE"]).dt.strftime("%Y-%m-%d")
     
     subregion_data.to_csv(f"data/filtered_data/subregions/{subregion}/GENERAL_COVID_DATA.csv")
