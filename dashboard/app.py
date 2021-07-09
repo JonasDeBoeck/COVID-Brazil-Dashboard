@@ -39,6 +39,7 @@ subregions_metadata = pd.read_csv(f'{wdir}/data/filtered_data/SUBREGION_METADATA
 app.layout = html.Div([
     dcc.Tabs(id='tabs', value='cases', children=[
         dcc.Tab(label='Cases', value='cases'),
+        dcc.Tab(label='Vaccinations', value='vaccinations'),
         # dcc.Tab(label='Predictions', value='predictions'),
         # dcc.Tab(label='Clustering', value='clustering'),
         # dcc.Tab(label='Hospitalisations', value='hospitalisations'),
@@ -92,6 +93,36 @@ def render_content(tab):
             html.Div([
 
             ], id='deaths-div'),
+        ])
+    elif tab == 'vaccinations':
+        return html.Div([
+            dcc.Dropdown(
+                id='dropdown-region',
+                options=[{'label': subregion, 'value': subregion} for subregion in subregions_metadata['SUBREGION']],
+                value='Araraquara',
+                clearable=False,
+                style={
+                    "width": "200px",
+                    "margin": "auto",
+                    "marginTop": "2rem"
+                }
+            ),
+
+            html.Div([
+            ], 
+                id='vaccinations-info-div',
+                style={
+                    "marginTop": "2rem"
+                }
+            ),
+
+            html.Div([
+
+            ], id='first-dose-div'),
+
+            html.Div([
+
+            ], id='second-dose-div')
         ])
     # elif tab == 'predictions':
     #     return html.Div([
@@ -623,6 +654,152 @@ def update_region_general_info(region):
                     dbc.CardBody([
                         html.H5(f'{region}', className='card-title'),
                         html.P(cumulative_deaths, className='card-text')
+                    ])
+                ], style={
+                    "borderLeft": "5px solid red",
+                }), 
+                width=2
+            ),
+        ], className="justify-content-center m-0")
+    ])
+
+    return [div]
+
+@app.callback(
+    Output('vaccinations-info-div', 'children'),
+    Input('dropdown-region', 'value')
+)
+def update_region_general_info(region):
+    df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
+
+    new_first_doses = df['NEW_FIRST_DOSES'].iloc[-1]
+    cumulative_first_doses = df['CUMULATIVE_FIRST_DOSES'].iloc[-1]
+    new_second_doses = df['NEW_SECOND_DOSES'].iloc[-1]
+    cumulative_second_doses = df['CUMULATIVE_SECOND_DOSES'].iloc[-1]
+
+    div = html.Div([
+        dbc.Row([
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.P(
+                            ['First doses'],
+                            style={
+                                "marginBottom": "0"
+                            }
+                        ),
+                        html.I(
+                            className="fas fa-syringe",
+                            style={
+                                "fontSize": "2rem",
+                                "color": "CornflowerBlue"
+                            }
+                        )
+                    ], style={
+                        "display": "flex",
+                        "flexDirection": "row",
+                        "justifyContent": "space-between",
+                        "alignItems": "center"
+                    }),
+                    dbc.CardBody([
+                        html.H5(f'{region}', className='card-title'),
+                        html.P(cumulative_first_doses, className='card-text')
+                    ])
+                ], style={
+                    "borderLeft": "5px solid CornflowerBlue",
+                }), 
+                width=2
+            ),
+
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.P(
+                            ['New first doses'],
+                            style={
+                                "marginBottom": "0"
+                            }
+                        ),
+                        html.I(
+                            className="fas fa-syringe",
+                            style={
+                                "fontSize": "2rem",
+                                "color": "orange"
+                            }
+                        )
+                    ], style={
+                        "display": "flex",
+                        "flexDirection": "row",
+                        "justifyContent": "space-between",
+                        "alignItems": "center"
+                    }),
+                    dbc.CardBody([
+                        html.H5(f'{region}', className='card-title'),
+                        html.P(new_first_doses, className='card-text')
+                    ])
+                ], style={
+                    "borderLeft": "5px solid orange",
+                }), 
+                width=2
+            ),
+
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.P(
+                            ['Second doses'],
+                            style={
+                                "marginBottom": "0"
+                            }
+                        ),
+                        html.I(
+                            className="fas fa-syringe",
+                            style={
+                                "fontSize": "2rem",
+                                "color": "green"
+                            }
+                        )
+                    ], style={
+                        "display": "flex",
+                        "flexDirection": "row",
+                        "justifyContent": "space-between",
+                        "alignItems": "center"
+                    }),
+                    dbc.CardBody([
+                        html.H5(f'{region}', className='card-title'),
+                        html.P(cumulative_second_doses, className='card-text')
+                    ])
+                ], style={
+                    "borderLeft": "5px solid green",
+                }), 
+                width=2
+            ),
+
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.P(
+                            ['New second doses'],
+                            style={
+                                "marginBottom": "0"
+                            }
+                        ),
+                        html.I(
+                            className="fas fa-syringe",
+                            style={
+                                "fontSize": "2rem",
+                                "color": "red"
+                            }
+                        )
+                    ], style={
+                        "display": "flex",
+                        "flexDirection": "row",
+                        "justifyContent": "space-between",
+                        "alignItems": "center"
+                    }),
+                    dbc.CardBody([
+                        html.H5(f'{region}', className='card-title'),
+                        html.P(new_second_doses, className='card-text')
                     ])
                 ], style={
                     "borderLeft": "5px solid red",
@@ -1294,7 +1471,7 @@ def update_region_general_info(region):
     Output('active-div', 'children'),
     Input('dropdown-region', 'value')
 )
-def update_province_active(region):
+def update_region_active(region):
     df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     fig = make_subplots(
@@ -1326,7 +1503,7 @@ def update_province_active(region):
     Output('cases-div', 'children'),
     Input('dropdown-region', 'value')
 )
-def update_province_cases(region):
+def update_region_cases(region):
     df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     fig = make_subplots(
@@ -1374,7 +1551,7 @@ def update_province_cases(region):
     Output('vaccinations-div', 'children'),
     Input('dropdown-region', 'value')
 )
-def update_state_vaccinations(region):
+def update_region_vaccinations(region):
     df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     fig = make_subplots(
@@ -1422,7 +1599,7 @@ def update_state_vaccinations(region):
     Output('recovered-div', 'children'),
     Input('dropdown-region', 'value')
 )
-def update_province_recovered(region):
+def update_region_recovered(region):
     df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
     
     fig = make_subplots(
@@ -1470,7 +1647,7 @@ def update_province_recovered(region):
     Output('deaths-div', 'children'),
     Input('dropdown-region', 'value')
 )
-def update_province_deaths(region):
+def update_region_deaths(region):
     df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     fig = make_subplots(
@@ -1511,6 +1688,111 @@ def update_province_deaths(region):
 
     fig.update_xaxes(title_text="Date", row=1, col=2)
     fig.update_yaxes(title_text="Total deaths", row=1, col=2)
+
+    return [dcc.Graph(figure=fig)]
+
+
+######################################
+###                                ###
+### CALLBACKS FOR VACCINATIONS TAB ###
+###                                ###
+######################################
+
+
+@app.callback(
+    Output('first-dose-div', 'children'),
+    Input('dropdown-region', 'value')
+)
+def update_region_first_doses(region):
+    df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
+    df = df[ df["CUMULATIVE_FIRST_DOSES"] > 0 ]
+
+    fig = make_subplots(
+        rows=1, 
+        cols=2,
+        subplot_titles=(
+            'New first doses',
+            'Total first doses'
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df['DATE'], 
+            y=df['NEW_FIRST_DOSES'],
+            mode='lines',
+            line=dict(color='orange'),
+            name=""
+        ),
+        row=1, col=1
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df['DATE'], 
+            y=df['CUMULATIVE_FIRST_DOSES'],
+            mode='lines',
+            line=dict(color='CornflowerBlue'),
+            name=""
+        ),
+        row=1, col=2
+    )
+
+    fig.update_layout(hovermode="x unified", showlegend=False)
+
+    fig.update_xaxes(title_text="Date", row=1, col=1)
+    fig.update_yaxes(title_text="New first doses", row=1, col=1)
+
+    fig.update_xaxes(title_text="Date", row=1, col=2)
+    fig.update_yaxes(title_text="Total first doses", row=1, col=2)
+
+    return [dcc.Graph(figure=fig)]
+
+@app.callback(
+    Output('second-dose-div', 'children'),
+    Input('dropdown-region', 'value')
+)
+def update_region_second_doses(region):
+    df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
+    df = df[ df["CUMULATIVE_SECOND_DOSES"] > 0 ]
+    fig = make_subplots(
+        rows=1, 
+        cols=2,
+        subplot_titles=(
+            'New second doses',
+            'Total second doses'
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df['DATE'], 
+            y=df['NEW_SECOND_DOSES'],
+            mode='lines',
+            line=dict(color='red'),
+            name=""
+        ),
+        row=1, col=1
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df['DATE'], 
+            y=df['CUMULATIVE_SECOND_DOSES'],
+            mode='lines',
+            line=dict(color='green'),
+            name=""
+        ),
+        row=1, col=2
+    )
+
+    fig.update_layout(hovermode="x unified", showlegend=False)
+
+    fig.update_xaxes(title_text="Date", row=1, col=1)
+    fig.update_yaxes(title_text="New second doses", row=1, col=1)
+
+    fig.update_xaxes(title_text="Date", row=1, col=2)
+    fig.update_yaxes(title_text="Total second doses", row=1, col=2)
 
     return [dcc.Graph(figure=fig)]
 
