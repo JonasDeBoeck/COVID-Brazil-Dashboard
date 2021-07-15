@@ -22,7 +22,7 @@ for subregion in metadata["SUBREGION"]:
 
     for index, row in subregion_data.iterrows():
         if index >= 14:
-            subregion_data.iloc[index, 10] = subregion_data.iloc[index, 3] - subregion_data.iloc[index - 1, 5]
+            subregion_data.iloc[index, 10] = subregion_data.iloc[index - 14, 3] - subregion_data.iloc[index - 14, 5]
 
     subregion_data["NEW_RECOVERED"] = 0
 
