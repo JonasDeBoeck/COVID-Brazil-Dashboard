@@ -669,7 +669,7 @@ def update_region_general_info(region):
     Output('vaccinations-info-div', 'children'),
     Input('dropdown-region', 'value')
 )
-def update_region_general_info(region):
+def update_region_vaccinations_info(region):
     df = pd.read_csv(f'{wdir}/data/filtered_data/subregions/{region}/GENERAL_COVID_DATA.csv')
 
     new_first_doses = df['NEW_FIRST_DOSES'].iloc[-1]
