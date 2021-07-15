@@ -40,7 +40,7 @@ app.layout = html.Div([
     dcc.Tabs(id='tabs', value='cases', children=[
         dcc.Tab(label='Cases', value='cases'),
         dcc.Tab(label='Vaccinations', value='vaccinations'),
-        # dcc.Tab(label='Predictions', value='predictions'),
+        dcc.Tab(label='Predictions', value='predictions'),
         # dcc.Tab(label='Clustering', value='clustering'),
         # dcc.Tab(label='Hospitalisations', value='hospitalisations'),
         # dcc.Tab(label='Tests', value='tests'),
@@ -124,46 +124,33 @@ def render_content(tab):
 
             ], id='second-dose-div')
         ])
-    # elif tab == 'predictions':
-    #     return html.Div([
-    #         dcc.Dropdown(
-    #             id='predictions-province',
-    #             options=[
-    #                 {'label': 'Belgium', 'value': 'Belgium'},
-    #                 {'label': 'Antwerpen', 'value': 'Antwerpen'},
-    #                 {'label': 'Waals-Brabant', 'value': 'BrabantWallon'},
-    #                 {'label': 'Brussel', 'value': 'Brussels'},
-    #                 {'label': 'Henegouwen', 'value': 'Hainaut'},
-    #                 {'label': 'Luik', 'value': 'Liège'},
-    #                 {'label': 'Limburg', 'value': 'Limburg'},
-    #                 {'label': 'Luxemburg', 'value': 'Luxembourg'},
-    #                 {'label': 'Namen', 'value': 'Namur'},
-    #                 {'label': 'Oost-Vlaanderen', 'value': 'OostVlaanderen'},
-    #                 {'label': 'Vlaams-Brabant', 'value': 'VlaamsBrabant'},
-    #                 {'label': 'West-Vlaanderen', 'value': 'WestVlaanderen'},
-    #             ],
-    #             value='Belgium',
-    #             clearable=False,
-    #             style={
-    #                 "width": "200px",
-    #                 "margin": "auto",
-    #                 "marginTop": "2rem"
-    #             }
-    #         ),
+    elif tab == 'predictions':
+        return html.Div([
+            dcc.Dropdown(
+                id='dropdown-region',
+                options=[{'label': subregion, 'value': subregion} for subregion in subregions_metadata['SUBREGION']],
+                value='Araraquara',
+                clearable=False,
+                style={
+                    "width": "200px",
+                    "margin": "auto",
+                    "marginTop": "2rem"
+                }
+            ),
 
-    #         html.Div([
+            html.Div([
 
-    #         ],
-    #             id="predictions-info-div",
-    #             style={
-    #                 "marginTop": "2rem"
-    #             }
-    #         ),
+            ],
+                id="predictions-info-div",
+                style={
+                    "marginTop": "2rem"
+                }
+            ),
 
-    #         html.Div(
-    #             id="predictions-div",
-    #         ),
-    #     ])
+            html.Div(
+                id="predictions-div",
+            ),
+        ])
     # elif tab == 'clustering':
     #     df = pd.read_csv(f'{wdir}data/resulted_data/kmeans/CLUSTER_PROVINCES.csv')
     #     df = df.rename(columns={"PROVINCE": "Provincie", "INFECTION_RATE": "Infectie graad", "HOSPITALISATION_RATE": "Hospitalisatie graad", "TEST_POS_PERCENTAGE": "Percentage positieve testen", "CLUSTER": "Cluster"})
@@ -811,120 +798,120 @@ def update_region_vaccinations_info(region):
 
     return [div]
 
-# @app.callback(
-#     Output('predictions-info-div', 'children'),
-#     Input('predictions-province', 'value')
-# )
-# def update_province_predictions_info(province):
-#     df = pd.read_csv(f'{wdir}data/resulted_data/neural_network/{province}/pred_all.csv')
-#     df["Data"] = pd.to_datetime(df["Data"]).dt.date
-#     days_trained = df[ df['Used in Train'] == True]
-#     days_trained = len(days_trained)
-#     days_predicted = df[ df['Used in Train'] == False]
-#     days_predicted = len(days_predicted)
-#     Rt = round(df[df['Data'] == date.today()]['Rt'], 2)
+@app.callback(
+    Output('predictions-info-div', 'children'),
+    Input('dropdown-region', 'value')
+)
+def update_province_predictions_info(region):
+    df = pd.read_csv(f'{wdir}/data/resulted_data/neural_network/{region}/pred_all.csv')
+    df["Data"] = pd.to_datetime(df["Data"]).dt.date
+    days_trained = df[ df['Used in Train'] == True]
+    days_trained = len(days_trained)
+    days_predicted = df[ df['Used in Train'] == False]
+    days_predicted = len(days_predicted)
+    Rt = round(df.iloc[-1]["Rt"], 2)
 
-#     div = html.Div([
-#         dbc.Row([
-#             dbc.Col(
-#                 dbc.Card([
-#                     dbc.CardHeader([
-#                         html.P(
-#                             ['Days trained'],
-#                             style={
-#                                 "marginBottom": "0"
-#                             }
-#                         ),
-#                         html.I(
-#                             className="fas fa-dumbbell",
-#                             style={
-#                                 "fontSize": "2rem",
-#                                 "color": "CornflowerBlue"
-#                             }
-#                         )
-#                     ], style={
-#                         "display": "flex",
-#                         "flexDirection": "row",
-#                         "justifyContent": "space-between",
-#                         "alignItems": "center"
-#                     }),
-#                     dbc.CardBody([
-#                         html.H5(f'{province}', className='card-title'),
-#                         html.P(days_trained, className='card-text')
-#                     ])
-#                 ], style={
-#                     "borderLeft": "5px solid CornflowerBlue",
-#                 }), 
-#                 width=2
-#             ),
+    div = html.Div([
+        dbc.Row([
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.P(
+                            ['Days trained'],
+                            style={
+                                "marginBottom": "0"
+                            }
+                        ),
+                        html.I(
+                            className="fas fa-dumbbell",
+                            style={
+                                "fontSize": "2rem",
+                                "color": "CornflowerBlue"
+                            }
+                        )
+                    ], style={
+                        "display": "flex",
+                        "flexDirection": "row",
+                        "justifyContent": "space-between",
+                        "alignItems": "center"
+                    }),
+                    dbc.CardBody([
+                        html.H5(f'{region}', className='card-title'),
+                        html.P(days_trained, className='card-text')
+                    ])
+                ], style={
+                    "borderLeft": "5px solid CornflowerBlue",
+                }), 
+                width=2
+            ),
 
-#             dbc.Col(
-#                 dbc.Card([
-#                     dbc.CardHeader([
-#                         html.P(
-#                             ['Days predicted'],
-#                             style={
-#                                 "marginBottom": "0"
-#                             }
-#                         ),
-#                         html.I(
-#                             className="fas fa-chart-line",
-#                             style={
-#                                 "fontSize": "2rem",
-#                                 "color": "orange"
-#                             }
-#                         )
-#                     ], style={
-#                         "display": "flex",
-#                         "flexDirection": "row",
-#                         "justifyContent": "space-between",
-#                         "alignItems": "center"
-#                     }),
-#                     dbc.CardBody([
-#                         html.H5(f'{province}', className='card-title'),
-#                         html.P(days_predicted, className='card-text')
-#                     ])
-#                 ], style={
-#                     "borderLeft": "5px solid orange",
-#                 }), 
-#                 width=2
-#             ),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.P(
+                            ['Days predicted'],
+                            style={
+                                "marginBottom": "0"
+                            }
+                        ),
+                        html.I(
+                            className="fas fa-chart-line",
+                            style={
+                                "fontSize": "2rem",
+                                "color": "orange"
+                            }
+                        )
+                    ], style={
+                        "display": "flex",
+                        "flexDirection": "row",
+                        "justifyContent": "space-between",
+                        "alignItems": "center"
+                    }),
+                    dbc.CardBody([
+                        html.H5(f'{region}', className='card-title'),
+                        html.P(days_predicted, className='card-text')
+                    ])
+                ], style={
+                    "borderLeft": "5px solid orange",
+                }), 
+                width=2
+            ),
 
-#             dbc.Col(
-#                 dbc.Card([
-#                     dbc.CardHeader([
-#                         html.P(
-#                             ['Reproduction factor'],
-#                             style={
-#                                 "marginBottom": "0"
-#                             }
-#                         ),
-#                         html.I(
-#                             className="fas fa-people-arrows",
-#                             style={
-#                                 "fontSize": "2rem",
-#                                 "color": "crimson"
-#                             }
-#                         )
-#                     ], style={
-#                         "display": "flex",
-#                         "flexDirection": "row",
-#                         "justifyContent": "space-between",
-#                         "alignItems": "center"
-#                     }),
-#                     dbc.CardBody([
-#                         html.H5(f'{province}', className='card-title'),
-#                         html.P(Rt, className='card-text')
-#                     ])
-#                 ], style={
-#                     "borderLeft": "5px solid crimson",
-#                 }), 
-#                 width=2
-#             ),
-#         ], className="justify-content-center m-0")
-#     ])
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.P(
+                            ['Reproduction factor'],
+                            style={
+                                "marginBottom": "0"
+                            }
+                        ),
+                        html.I(
+                            className="fas fa-people-arrows",
+                            style={
+                                "fontSize": "2rem",
+                                "color": "crimson"
+                            }
+                        )
+                    ], style={
+                        "display": "flex",
+                        "flexDirection": "row",
+                        "justifyContent": "space-between",
+                        "alignItems": "center"
+                    }),
+                    dbc.CardBody([
+                        html.H5(f'{region}', className='card-title'),
+                        html.P(Rt, className='card-text')
+                    ])
+                ], style={
+                    "borderLeft": "5px solid crimson",
+                }), 
+                width=2
+            ),
+        ], className="justify-content-center m-0")
+    ])
 
-#     return [div]
+    return [div]
 
 # @app.callback(
 #     Output('hospitalisations-info-div', 'children'),
@@ -1804,124 +1791,101 @@ def update_region_second_doses(region):
 #####################################
 
 
-# @app.callback(
-#     Output('predictions-div', 'children'),
-#     Input('predictions-province', 'value')
-# )
-# def update_province_predictions(province):
-#     df = pd.read_csv(f'{wdir}data/resulted_data/neural_network/{province}/pred_all.csv')
-#     df['Data'] = pd.to_datetime(df['Data']).dt.strftime('%Y-%m-%d')
-#     last_training_day = df[ df['Used in Train'] == True].iloc[-1]['Data']
-#     last_training_day = datetime.strptime(last_training_day, '%Y-%m-%d')
-#     last_training_day_epoch = last_training_day.timestamp()*1000
-#     first_training_day = df[ df['Used in Train'] == True].iloc[0]['Data']
-#     first_training_day = datetime.strptime(first_training_day, '%Y-%m-%d')
+@app.callback(
+    Output('predictions-div', 'children'),
+    Input('dropdown-region', 'value')
+)
+def update_province_predictions(region):
+    df = pd.read_csv(f'{wdir}/data/resulted_data/neural_network/{region}/pred_all.csv')
+    df['Data'] = pd.to_datetime(df['Data']).dt.strftime('%Y-%m-%d')
+    last_training_day = df[ df['Used in Train'] == True].iloc[-1]['Data']
+    last_training_day = datetime.strptime(last_training_day, '%Y-%m-%d')
+    last_training_day_epoch = last_training_day.timestamp()*1000
+    first_training_day = df[ df['Used in Train'] == True].iloc[0]['Data']
+    first_training_day = datetime.strptime(first_training_day, '%Y-%m-%d')
 
-#     test_df = pd.read_csv(f'{wdir}data/filtered_data/CASES_RECOVERED_DEATHS_ACTIVE.csv')
-#     test_df = test_df[ test_df["REGION"] == province ]
-#     test_df["DATE"] = pd.to_datetime(test_df["DATE"])
-#     test_df = test_df[ test_df["DATE"] >= first_training_day]
-#     test_df = test_df[ test_df["DATE"] <= last_training_day]
+    # test_df = pd.read_csv(f'{wdir}/data/filtered_data/CASES_RECOVERED_DEATHS_ACTIVE.csv')
+    # test_df = test_df[ test_df["REGION"] == province ]
+    # test_df["DATE"] = pd.to_datetime(test_df["DATE"])
+    # test_df = test_df[ test_df["DATE"] >= first_training_day]
+    # test_df = test_df[ test_df["DATE"] <= last_training_day]
 
-#     fig1 = make_subplots(
-#         rows=1,
-#         cols=2,
-#         subplot_titles=(
-#             'Active infections',
-#             'Total recovered',
-#         )
-#     )
+    fig1 = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=(
+            'Active infections',
+            'Total recovered',
+        )
+    )
 
-#     fig1.add_trace(
-#         go.Scatter(
-#             x=df['Data'], 
-#             y=df['Infected'],
-#             mode='lines',
-#             line=dict(color='CornflowerBlue'),
-#             name="Predicted"
-#         ),
-#         row=1, col=1
-#     )
+    fig1.add_trace(
+        go.Scatter(
+            x=df['Data'], 
+            y=df['Infected'],
+            mode='lines',
+            line=dict(color='CornflowerBlue'),
+            name="Predicted"
+        ),
+        row=1, col=1
+    )
 
-#     fig1.add_trace(
-#         go.Scatter(
-#             x=test_df["DATE"],
-#             y=test_df["ACTIVE_CASES"],
-#             mode='lines',
-#             line=dict(color='black', dash='dot'),
-#             name="Measured"
-#         ),
-#         row=1, col=1
-#     )
+    fig1.add_trace(
+        go.Scatter(
+            x=df['Data'], 
+            y=df['Recovered'],
+            mode='lines',
+            line=dict(color='Green'),
+            name="Predicted"
+        ),
+        row=1, col=2
+    )
 
-#     fig1.add_trace(
-#         go.Scatter(
-#             x=df['Data'], 
-#             y=df['Recovered'],
-#             mode='lines',
-#             line=dict(color='Green'),
-#             name="Predicted"
-#         ),
-#         row=1, col=2
-#     )
+    fig1.add_vline(x=last_training_day_epoch, line_dash="dash", annotation_text="End of training", annotation_position="bottom right", annotation_font_size=16)
 
-#     if province == "Belgium":
-#         fig1.add_trace(
-#             go.Scatter(
-#                 x=test_df["DATE"],
-#                 y=test_df["CUMULATIVE_RECOVERED"] + test_df["CUMULATIVE_DEATHS"],
-#                 mode='lines',
-#                 line=dict(color='black', dash='dot'),
-#                 name="Measured"
-#             ),
-#             row=1, col=2
-#         )
-#     else:
-#         fig1.add_trace(
-#             go.Scatter(
-#                 x=test_df["DATE"],
-#                 y=test_df["CUMULATIVE_RECOVERED"],
-#                 mode='lines',
-#                 line=dict(color='black', dash='dot'),
-#                 name="Measured"
-#             ),
-#             row=1, col=2
-#         )
+    fig2 = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=(
+            'Total deaths',
+            'Reproduction factor',
+        )
+    )
 
-#     fig1.add_vline(x=last_training_day_epoch, line_dash="dash", annotation_text="End of training", annotation_position="bottom right", annotation_font_size=16)
+    fig2.add_trace(
+        go.Scatter(
+            x=df['Data'], 
+            y=df['Death'],
+            mode='lines',
+            line=dict(color='orange'),
+        ),
+        row=1, col=1
+    )
+    
+    fig2.add_trace(
+        go.Scatter(
+            x=df['Data'], 
+            y=df['Rt'],
+            mode='lines',
+            line=dict(color='crimson'),
+        ),
+        row=1, col=2
+    )
 
-#     fig2 = make_subplots(
-#         rows=1,
-#         cols=1,
-#         subplot_titles=(
-#             'Reproduction factor',
-#         )
-#     )
+    fig2.add_vline(x=last_training_day_epoch, line_dash="dash", annotation_text="End of training", annotation_position="bottom right", annotation_font_size=16)
 
-#     fig2.add_trace(
-#         go.Scatter(
-#             x=df['Data'], 
-#             y=df['Rt'],
-#             mode='lines',
-#             line=dict(color='Crimson'),
-#         ),
-#         row=1, col=1
-#     )
+    fig1.update_layout(hovermode='x unified', showlegend=False)
+    fig2.update_layout(hovermode='x unified', showlegend=False)
 
-#     fig2.add_vline(x=last_training_day_epoch, line_dash="dash", annotation_text="End of training", annotation_position="bottom right", annotation_font_size=16)
+    fig1.update_xaxes(title_text="Date", row=1, col=1)
+    fig1.update_yaxes(title_text="Active infections", row=1, col=1)
+    fig1.update_xaxes(title_text="Date", row=1, col=2)
+    fig1.update_yaxes(title_text="Total recovered", row=1, col=2)
 
-#     fig1.update_layout(hovermode='x unified', showlegend=False)
-#     fig2.update_layout(hovermode='x unified')
+    fig2.update_xaxes(title_text="Date", row=1, col=1)
+    fig2.update_yaxes(title_text="Reproduction factor", row=1, col=1)
 
-#     fig1.update_xaxes(title_text="Date", row=1, col=1)
-#     fig1.update_yaxes(title_text="Active infections", row=1, col=1)
-#     fig1.update_xaxes(title_text="Date", row=1, col=2)
-#     fig1.update_yaxes(title_text="Total recovered", row=1, col=2)
-
-#     fig2.update_xaxes(title_text="Date", row=1, col=1)
-#     fig2.update_yaxes(title_text="Reproduction factor", row=1, col=1)
-
-#     return [dcc.Graph(figure=fig1), dcc.Graph(figure=fig2)]
+    return [dcc.Graph(figure=fig1), dcc.Graph(figure=fig2)]
 
 
 ##########################################

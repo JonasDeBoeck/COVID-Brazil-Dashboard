@@ -1,17 +1,16 @@
 import matplotlib
 import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
-import SIRD_NN
-import SIRD_NN.Models as Mod
+import Models as Mod
+import Learner
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import os
 import numpy as np
 import pandas as pd
 from datetime import timedelta, datetime
 from scipy.stats.mstats import hmean, gmean
 
-def run_region(region, sl1, sl, dc, dt, step=14, mAvg=False,
+def run_region(region, sl1, sl, dt, pop, step=14, mAvg=False,
                 is_SIR=False, model=Mod.SIRD, is_semanal=False):
     """
         region: str
@@ -43,9 +42,9 @@ def run_region(region, sl1, sl, dc, dt, step=14, mAvg=False,
             Use SIR model instead of SIRD model
             default: False
     """
-    pop = get_pop(region, dc)
+    pop = pop
 
-    ini = get_data(dt, region, is_pred=False)
+    ini = dt
     ini = ini[["Data", "At", "Rt", "Óbitos", 'Confirmados']]
     ini = sort_data(ini)
     ini = ini.set_index(ini['Data'])
@@ -75,7 +74,7 @@ def run_region(region, sl1, sl, dc, dt, step=14, mAvg=False,
         val_0 = [s_0, i_0, rC_0 + rD_0]
     else:
         val_0 = [s_0, i_0, rC_0, rD_0]
-    learner = SIRD_NN.Learner_Geral(region, model, d,is_semanal, *val_0, params=[], is_SIR =is_SIR)
+    learner = Learner.Learner_Geral(region, model, d,is_semanal, *val_0, params=[], is_SIR =is_SIR)
     # recovered, death, inf,vac1, vac2,
     if is_SIR:
         # rec_data = 
@@ -221,40 +220,6 @@ def calc_vacRate(vac):
     vacR = np.mean(vac)
     return vacR
 
-
-def get_from_sheets(sheet_page = 'Data_subregions', sheets='dados'):
-    scope = ['https://spreadsheets.google.com/feeds',
-             'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('data/cred-sir.json',scope)
-    client = gspread.authorize(creds)
-
-
-    sheet =  client.open(sheets)
-    d = sheet.worksheet(sheet_page)
-    df = pd.DataFrame(d.get_all_records())
-    if 'Data' in df.columns:
-        df.loc[:,'Data'] = pd.to_datetime(df.Data)
-        df.loc[:,'Data'] = df['Data'].dt.strftime('%m/%d/%Y')
-    return df
-
-def atualiza_dados(sheet_page = 'Data_subregions', pasta=None, dataset='dados'):
-    scope = ['https://spreadsheets.google.com/feeds',
-             'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('data/cred-sir.json',scope)
-    client = gspread.authorize(creds)
-
-
-    sheet =  client.open(dataset)
-    d = sheet.worksheet(sheet_page)
-    df = pd.DataFrame(d.get_all_records())
-    if 'Data' in df.columns:
-        df.loc[:,'Data'] = pd.to_datetime(df.Data)
-        df.loc[:,'Data'] = df['Data'].dt.strftime('%m/%d/%Y')
-    if pasta is not None:
-        df.to_csv(f"{pasta}/{dataset} - {sheet_page}.csv")
-    else:
-        df.to_csv(f"data/{dataset} - {sheet_page}.csv")
-
 def translate(r):
         translator = {
         'Grande SP Leste': 'Greater SP East',
@@ -337,23 +302,23 @@ def read_global(region):
 
 def get_data(df_data,r, is_pred = True):
     cols = ['beta(t)','gamma_Rec','gamma_Death','Lethality','Rt']
-    dc = pd.read_csv(f'data/dados - Agrupamento.csv')
+    # dc = pd.read_csv(f'data/dados - Agrupamento.csv')
     if r in df_data["SP-Subregião"].unique():
         df_d = df_data[df_data["SP-Subregião"] == r]
     elif ('Cidades' in df_data.columns) and (r in df_data["Cidades"].unique()):
         df_d = df_data[df_data["Cidades"] == r]
-    elif r in dc['Região'].unique():
-        est = dc[dc['Região'] == r]['SP-Subregião'].unique()
-        df_d = pd.DataFrame()
-        for e in est:
-            df_d =df_d.append(df_data[df_data['SP-Subregião'] == e])
-        df_d = df_d.groupby(['Data'], as_index=False).sum()
-        df_d['SP-Subregião'] = r
-        if is_pred:
-            l = len(est)
-            for c in cols:
-                if c in df_d.columns:
-                    df_d.loc[:,c] = df_d[c]/l
+    # elif r in dc['Região'].unique():
+    #     est = dc[dc['Região'] == r]['SP-Subregião'].unique()
+    #     df_d = pd.DataFrame()
+    #     for e in est:
+    #         df_d =df_d.append(df_data[df_data['SP-Subregião'] == e])
+    #     df_d = df_d.groupby(['Data'], as_index=False).sum()
+    #     df_d['SP-Subregião'] = r
+    #     if is_pred:
+    #         l = len(est)
+    #         for c in cols:
+    #             if c in df_d.columns:
+    #                 df_d.loc[:,c] = df_d[c]/l
     else:
         return pd.DataFrame(columns = df_data.columns)
     if 'Used in Train' in df_data.columns:
@@ -450,11 +415,10 @@ def ERROR_DF(df_data, df_p, r, cols_p = ['Infected', 'Recovered', 'Death'],
 def MAPE(arq_data, arq_prev, file = 'MAPE.csv', total = False, save = False, MM = False, is_weekly=False):
     df_data = arq_data
     df_prev = arq_prev
-    df_save = pd.DataFrame(columns = ["SP-Subregião", 'MAPE Infectados', 'MAPE Óbitos', 'MAPE  Recuperados'])
+    df_save = pd.DataFrame(columns = ["SP-Subregião", 'MAPE Infectados', 'MAPE  Recuperados'])
     for r in df_prev["SP-Subregião"].unique():
         df_p = df_prev[df_prev["SP-Subregião"] == r]
         df_d = get_data(df_data,r,is_pred = False)
-
         if total:
             df_p = df_p[df_p['Used in Train']]
         else:
@@ -464,15 +428,22 @@ def MAPE(arq_data, arq_prev, file = 'MAPE.csv', total = False, save = False, MM 
             pass
         if is_weekly:
             df_d = turn_weekly(df_d)
-        df_d = df_d[df_d["Data"].isin(df_p["Data"])][["At", "Óbitos", 'Rt','Data']]
+
+        df_d["Data"] = pd.to_datetime(df_d["Data"])
+        df_d["Data"] = df_d["Data"].dt.strftime("%m/%d/%Y")
+
+        df_d = df_d[df_d["Data"].isin(df_p["Data"])][["At", 'Rt','Data']]
+
+        print(df_d)
+
         df_p = df_p[df_p["Data"].isin(df_d["Data"])]
         l = len(df_d)
         df_d = df_d.set_index(np.arange(l))
-        df_p = df_p[['Infected', 'Death', 'Recovered']].set_index(np.arange(l))
+        df_p = df_p[['Infected', 'Recovered']].set_index(np.arange(l))
         er_I = run_mape(df_d['At'], df_p['Infected'])
         er_R = run_mape(df_d['Rt'], df_p['Recovered'])
-        er_D = run_mape(df_d['Óbitos'], df_p['Death'])
-        df_save = df_save.append({"SP-Subregião":r, 'MAPE Infectados':er_I, 'MAPE Óbitos': er_D, 'MAPE  Recuperados':er_R}, ignore_index=True)
+        # er_D = run_mape(df_d['Óbitos'], df_p['Death'])
+        df_save = df_save.append({"SP-Subregião":r, 'MAPE Infectados':er_I, 'MAPE  Recuperados':er_R}, ignore_index=True)
         
     if save:
         df_save.to_csv(file)
@@ -488,17 +459,17 @@ def cluster(region,prev,pasta, lim = None,coef_I = 1, coef_D = 0, coef_R = 0, pe
     if lim is None:
         lim_I = (np.max(MAPES['MAPE Infectados']) - np.min(MAPES['MAPE Infectados'])) * percent + np.min(MAPES['MAPE Infectados'])
         lim_R = (np.max(MAPES['MAPE  Recuperados']) - np.min(MAPES['MAPE  Recuperados'])) * percent + np.min(MAPES['MAPE  Recuperados'])
-        lim_D = (np.max(MAPES['MAPE Óbitos']) - np.min(MAPES['MAPE Óbitos'])) * percent + np.min(MAPES['MAPE Óbitos'])
+        lim_D = 0
         
         lim = (lim_I * coef_I + lim_R * coef_R + lim_D * coef_D)/(coef_I + coef_R + coef_D)
     for i in range(len(MAPES)):
         Inf = MAPES['MAPE Infectados'].iloc[i] * coef_I
         Rec = MAPES['MAPE  Recuperados'].iloc[i] * coef_R
-        Dea = MAPES['MAPE Óbitos'].iloc[i] * coef_D
+        # Dea = MAPES['MAPE Óbitos'].iloc[i] * coef_D
         Dia = MAPES.index[i]
         
 #         metrica = (Inf + Rec + Dea)/(coef_I + coef_R + coef_D)
-        if Inf < lim and Rec < lim and Dea < lim:
+        if Inf < lim and Rec < lim:
 #         if metrica < lim:
             g = 0
             result.append('Passed')
@@ -515,7 +486,7 @@ def filter_results(region, dia_ini, dia_fim, prev, pasta, inner_dir, coef_I = 1,
 
     g = cluster(region,prev, coef_I = coef_I, coef_D = coef_D, coef_R = coef_R, lim = lim, pasta = pasta)
     df_g1 = pd.DataFrame()   
-    df_data = pd.read_csv("data\\dados - Data_subregions.csv")
+    # df_data = pd.read_csv("data\\dados - Data_subregions.csv")
     for dLen in range(dia_ini,dia_fim+1):
         if inner_dir:
             if dir_sufix is None:
@@ -536,9 +507,10 @@ def filter_results(region, dia_ini, dia_fim, prev, pasta, inner_dir, coef_I = 1,
     
     if return_total or len(df_g1) == 0:
         return df_g1,df_g1,df_g1
-    
-    df_mean = df_g1.groupby('Data', as_index=False).agg({c:gmean if c not in ['Data','SP-Subregião','Used in Train','beta(t)', 'Gamma_Rec',
-                                                                                'Gamma_Death', 'Rt','OPTM_Result'] else non_num_mean for c in df.columns})
+    df_mean = df_g1.groupby('Data', as_index=False).agg({c:gmean if c not in ['Data','SP-Subregião','Used in Train','beta(t)', 'Gamma',
+                                                                                'Rt','OPTM_Result'] else non_num_mean for c in df.columns})
+    # df_mean = df_g1.groupby('Data', as_index=False).mean()
+    df_mean['SP-Subregião'] = region
     df_min = df_g1.groupby('Data', as_index=False).min()
     df_max = df_g1.groupby('Data', as_index=False).max()
     
@@ -574,7 +546,7 @@ def unifica(dia_ini, dia_fim, prev, region, pasta, df_data, inner_dir = False, d
                 df_prev = pd.read_csv(file2)
                 df_MAPE1 = MAPE(df_data, df_prev,total = True,MM=MM,is_weekly=is_weekly)
                 df_MAPE1 = df_MAPE1.set_index(pd.Index([dLen]))
-        
+
             df_MAPE = df_MAPE.append(df_MAPE1)
         df_MAPE.to_csv(f'{pasta}/{region}/MAPE_Total-{region}-Prev{prev}.csv')
     df_pred,df_pred_min, df_pred_max  = filter_results(region,dia_ini,dia_fim, prev, pasta, inner_dir, lim = 50, dir_sufix=dir_sufix,recalc_rt=recalc_rt)
@@ -617,7 +589,7 @@ def unifica(dia_ini, dia_fim, prev, region, pasta, df_data, inner_dir = False, d
     return df_pred, df_pred_min, df_pred_max
 
 def MAPE_DF(df_data, df_p, r, cols_p = ['Infected', 'Recovered', 'Death'], cols_d=["At", 'Rt', "Óbitos", 'Data'],prev = True): 
-    dc = pd.read_csv(f'data/dados - Agrupamento.csv')
+    # dc = pd.read_csv(f'data/dados - Agrupamento.csv')
     df_d = get_data(df_data,r,is_pred = False)
 
     df_p = get_data(df_p,r)
@@ -726,7 +698,6 @@ def plot(df_data, df_pred,r,pasta,pasta_graph,fs = 24,T = None, **kwargs):
         plot_mult(df_data, df_pred,r,pasta,pasta_graph,fs)
         return
     pasta_save = f'{pasta}/{pasta_graph}'
-    dc = pd.read_csv(f'data/dados - Agrupamento.csv')
     if not os.path.isdir(pasta_save):
         os.makedirs(pasta_save, exist_ok = True)
     df_d = get_data(df_data, r,is_pred = False)
@@ -738,7 +709,7 @@ def plot(df_data, df_pred,r,pasta,pasta_graph,fs = 24,T = None, **kwargs):
         df_d.loc[:,'Rt'] = rec
         df_d.loc[:,'At'] = inf
     
-    df_conf = df_p[['Infected', 'Recovered', 'Death']].sum(axis=1)
+    df_conf = df_p[['Infected', 'Recovered']].sum(axis=1)
     perday = np.zeros((len(df_conf),))
     perday[0] = np.nan
     perday[1:] = df_conf.iloc[1:].values - df_conf.iloc[:-1].values
@@ -758,7 +729,6 @@ def plot(df_data, df_pred,r,pasta,pasta_graph,fs = 24,T = None, **kwargs):
 
     df_d = df_d.loc[idx_d].rename(columns = {'At':f'Active Cases (Real data)',
                                            'Rt':'Recovered Cases (Real data)',
-                                           'Óbitos':'Deceased (Real data)',
                                            'Confirmados': 'Confirmed (Real data)'})
     
     
@@ -767,11 +737,11 @@ def plot(df_data, df_pred,r,pasta,pasta_graph,fs = 24,T = None, **kwargs):
     ####################               PLOT Recovered                 #######################
     plot_unique(df_p['Recovered'], df_d,'Recovered Cases (Real data)',f'Cumulative Recovered - {title}',fs,f'{pasta_save}/recovered\\{r}_Rec.png',idx, esp = esp, **kwargs, col = 'Recovered')
     ####################               PLOT ÓBITOS                    #######################
-    plot_unique(df_p['Death'], df_d,'Deceased (Real data)',f'Cumulative Deceased - {title}',fs,f'{pasta_save}/Death\\{r}_Death.png',idx, esp = esp, **kwargs, col = 'Death')
+    # plot_unique(df_p['Death'], df_d,'Deceased (Real data)',f'Cumulative Deceased - {title}',fs,f'{pasta_save}/Death\\{r}_Death.png',idx, esp = esp, **kwargs, col = 'Death')
     ###################                PLOT R(t)                      #######################
     plot_unique(df_p['Rt'], None,None,r'$R_0(t)$ - '+f'{title}',fs,f'{pasta_save}/Rt\\{r}_Rt.png',idx, esp = esp,is_rt = True, **kwargs, col = 'Rt')
     ###################                PLOT R(t)                      #######################
-    plot_unique(df_p[['Infected', 'Recovered', 'Death']].sum(axis=1), df_d,'Confirmed (Real data)',f'Cumulative Confirmed - {title}',fs,f'{pasta_save}/Confirmed\\{r}_Conf.png',idx, esp = esp)
+    plot_unique(df_p[['Infected', 'Recovered']].sum(axis=1), df_d,'Confirmed (Real data)',f'Cumulative Confirmed - {title}',fs,f'{pasta_save}/Confirmed\\{r}_Conf.png',idx, esp = esp)
 
 
     
@@ -987,7 +957,13 @@ def run_unifica(dtime,case, prev=0,regs = None, unify = True, crop = 10, MM = Fa
         df_data['SP-Subregião'] = 'Brasil'
         if regs is None:
             regs = ['Brasil']
-
+    else:
+        pasta = f'data/resulted_data/neural_network/temp/'
+        df_data = pd.read_csv(f'data/filtered_data/subregions/{case}/GENERAL_COVID_DATA.csv')
+        df_data = (df_data[df_data["REGION"] == case])
+        df_data = df_data.rename(columns={"DATE": "Data", "ACTIVE_CASES": "At", "CUMULATIVE_RECOVERED": "Rt", "CUMULATIVE_DEATHS": "Óbitos", "CUMULATIVE_CASES": "Confirmados", "REGION": "SP-Subregião"})
+        regs = [case]
+        df_data = df_data.iloc[-33:-2]
 
     df_geral = pd.DataFrame()
     df_geral_min = pd.DataFrame()
@@ -1003,16 +979,15 @@ def run_unifica(dtime,case, prev=0,regs = None, unify = True, crop = 10, MM = Fa
                 df_min = run_ivp(df_min,r,dc)
                 df_max = run_ivp(df_max,r,dc)
 
+            print(df_)
+
             df_geral = df_geral.append(df_)
             df_geral_min = df_geral_min.append(df_min)
             df_geral_max = df_geral_max.append(df_max)
-            
-            
-        
+                
         date_str = df_geral[df_geral['Used in Train']]['Data'].iloc[-1]
         dtime = datetime.strptime(date_str,'%m/%d/%Y')
         pred_day = dtime.strftime('%Y-%b-%d')+save_sufix
-        print(pred_day)
         if case == 'state' or case == 'BR-dataset':
             dir_res = f'Val-Results-states/{pred_day}/{dia_ini}-{dia_fim}'
         elif case == 'subregion' or case == 'SP-dataset':
@@ -1021,6 +996,8 @@ def run_unifica(dtime,case, prev=0,regs = None, unify = True, crop = 10, MM = Fa
             dir_res = f'Val-Results-City/{pred_day}/{dia_ini}-{dia_fim}' 
         elif case == 'JHU':
             dir_res = f'Val-Results-JHU/{pred_day}/{dia_ini}-{dia_fim}' 
+        else:
+            dir_res = f'data/resulted_data/neural_network/{case}'
         if MM:
             dir_res = dir_res + '/MM'
         if not os.path.isdir(dir_res):
