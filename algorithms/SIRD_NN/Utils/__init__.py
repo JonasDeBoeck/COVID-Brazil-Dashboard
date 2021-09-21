@@ -484,6 +484,8 @@ def cluster(region,prev,pasta, lim = None,coef_I = 1, coef_D = 0, coef_R = 0, pe
 def filter_results(region, dia_ini, dia_fim, prev, pasta, inner_dir, coef_I = 1, coef_D = 1, coef_R = 1, 
                     lim = None,return_total = False, dir_sufix=None, recalc_rt=False):
 
+    print(region)
+
     g = cluster(region,prev, coef_I = coef_I, coef_D = coef_D, coef_R = coef_R, lim = lim, pasta = pasta)
     df_g1 = pd.DataFrame()   
     # df_data = pd.read_csv("data\\dados - Data_subregions.csv")
@@ -507,7 +509,8 @@ def filter_results(region, dia_ini, dia_fim, prev, pasta, inner_dir, coef_I = 1,
     
     if return_total or len(df_g1) == 0:
         return df_g1,df_g1,df_g1
-    df_mean = df_g1.groupby('Data', as_index=False).agg({c:gmean if c not in ['Data','SP-Subregião','Used in Train','beta(t)', 'Gamma',
+
+    df_mean = df_g1.groupby('Data', as_index=True).agg({c:gmean if c not in ['Data','SP-Subregião','Used in Train','beta(t)', 'Gamma',
                                                                                 'Rt','OPTM_Result'] else non_num_mean for c in df.columns})
     # df_mean = df_g1.groupby('Data', as_index=False).mean()
     df_mean['SP-Subregião'] = region
@@ -979,12 +982,11 @@ def run_unifica(dtime,case, prev=0,regs = None, unify = True, crop = 10, MM = Fa
                 df_min = run_ivp(df_min,r,dc)
                 df_max = run_ivp(df_max,r,dc)
 
-            print(df_)
-
             df_geral = df_geral.append(df_)
             df_geral_min = df_geral_min.append(df_min)
             df_geral_max = df_geral_max.append(df_max)
-                
+            
+        print(df_geral)
         date_str = df_geral[df_geral['Used in Train']]['Data'].iloc[-1]
         dtime = datetime.strptime(date_str,'%m/%d/%Y')
         pred_day = dtime.strftime('%Y-%b-%d')+save_sufix
@@ -1002,6 +1004,7 @@ def run_unifica(dtime,case, prev=0,regs = None, unify = True, crop = 10, MM = Fa
             dir_res = dir_res + '/MM'
         if not os.path.isdir(dir_res):
                 os.makedirs(dir_res, exist_ok = True)
+        
         df_geral.to_csv(f'{dir_res}/pred_all.csv')
         df_geral_min.to_csv(f'{dir_res}/pred_all_min.csv')
         df_geral_max.to_csv(f'{dir_res}/pred_all_max.csv')
